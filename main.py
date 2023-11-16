@@ -11,19 +11,19 @@ from tensorflow.keras.optimizers.legacy import Adam
 from sklearn.metrics import accuracy_score
 import random
 
-np.random.seed(42)
+np.random.seed(22)
 
-data_dir = './input_ed'
-train_path = './input_ed/Train'
-test_path = './input_ed'
+ddir = './input_ed'
+tr_p = './input_ed/Train'
+te_p = './input_ed'
 
-IMG_HEIGHT = 30
-IMG_WIDTH = 30
-channels = 3
+im_h = 30
+im_w = 30
+chans = 3
 
-NUM_CATEGORIES = len(os.listdir(train_path))
+n_categories = len(os.listdir(tr_p))
 
-classes = { 0:'Speed limit (20km/h)',
+SIGNS = { 0:'Speed limit (20km/h)',
             1:'Speed limit (30km/h)', 
             2:'Speed limit (50km/h)', 
             3:'Speed limit (60km/h)', 
@@ -67,59 +67,59 @@ classes = { 0:'Speed limit (20km/h)',
             41:'End of no passing', 
             42:'End no passing veh > 3.5 tons' }
 
-folders = os.listdir(train_path)
+flds = os.listdir(tr_p)
 
-train_number = []
-class_num = []
+n_training = []
+n_classes = []
 
-for folder in folders:
-    train_files = os.listdir(train_path + '/' + folder)
-    train_number.append(len(train_files))
-    class_num.append(classes[int(folder)])
+for folder in flds:
+    f_train = os.listdir(tr_p + '/' + folder)
+    n_training.append(len(train_files))
+    n_classes.append(SIGNS[int(folder)])
 
-zipped_lists = zip(train_number, class_num)
-sorted_pairs = sorted(zipped_lists)
-tuples = zip(*sorted_pairs)
-train_number, class_num = [ list(tuple) for tuple in  tuples]
+lists_all = zip(n_training, n_classes)
+pairs_s = sorted(lists_all)
+tuples = zip(*pairs_s)
+n_training, n_classes = [ list(tuple) for tuple in  tuples]
 
-test = pd.read_csv(data_dir + '/Test.csv')
+test = pd.read_csv(ddir + '/Test.csv')
 imgs = test["Path"].values
 
-image_data = []
-image_labels = []
+D_IMAGES = []
+L_IMAGES = []
 
-for i in range(NUM_CATEGORIES):
-    path = data_dir + '/Train/' + str(i)
+for i in range(n_categories):
+    path = ddir + '/Train/' + str(i)
     images = os.listdir(path)
 
     for img in images:
         try:
             image = cv2.imread(path + '/' + img)
             image_fromarray = Image.fromarray(image, 'RGB')
-            resize_image = image_fromarray.resize((IMG_HEIGHT, IMG_WIDTH))
-            image_data.append(np.array(resize_image))
-            image_labels.append(i)
+            resize_image = image_fromarray.resize((im_h, im_w))
+            D_IMAGES.append(np.array(resize_image))
+            L_IMAGES.append(i)
         except:
             print("Error in " + img)
 
-image_data = np.array(image_data)
-image_labels = np.array(image_labels)
+D_IMAGES = np.array(D_IMAGES)
+L_IMAGES = np.array(L_IMAGES)
 
-shuffle_indexes = np.arange(image_data.shape[0])
-np.random.shuffle(shuffle_indexes)
-image_data = image_data[shuffle_indexes]
-image_labels = image_labels[shuffle_indexes]
+sh_ind = np.arange(D_IMAGES.shape[0])
+np.random.shuffle(sh_ind)
+D_IMAGES = D_IMAGES[sh_ind]
+L_IMAGES = L_IMAGES[sh_ind]
 
-X_train, X_val, y_train, y_val = train_test_split(image_data, image_labels, test_size=0.3, random_state=42, shuffle=True)
+TRAIN_X, VAL_X, TRAIN_Y, VAL_Y = train_test_split(D_IMAGES, L_IMAGES, test_size=0.3, random_state=42, shuffle=True)
 
-X_train = X_train/255 
-X_val = X_val/255
+TRAIN_X = TRAIN_X/255 
+VAL_X = VAL_X/255
 
-y_train = keras.utils.to_categorical(y_train, NUM_CATEGORIES)
-y_val = keras.utils.to_categorical(y_val, NUM_CATEGORIES)
+TRAIN_Y = keras.utils.to_categorical(TRAIN_Y, n_categories)
+VAL_Y = keras.utils.to_categorical(VAL_Y, n_categories)
 
 model = keras.models.Sequential([    
-    keras.layers.Conv2D(filters=16, kernel_size=(3,3), activation='relu', input_shape=(IMG_HEIGHT,IMG_WIDTH,channels)),
+    keras.layers.Conv2D(filters=16, kernel_size=(3,3), activation='relu', input_shape=(im_h,im_w,chans)),
     keras.layers.Conv2D(filters=32, kernel_size=(3,3), activation='relu'),
     keras.layers.MaxPool2D(pool_size=(2, 2)),
     keras.layers.BatchNormalization(axis=-1),
@@ -153,9 +153,9 @@ aug = ImageDataGenerator(
     vertical_flip=False,
     fill_mode="nearest")
 
-model.fit(aug.flow(X_train, y_train, batch_size=32), epochs=epochs, validation_data=(X_val, y_val))
+model.fit(aug.flow(TRAIN_X, TRAIN_Y, batch_size=32), epochs=epochs, validation_data=(VAL_X, VAL_Y))
 
-test = pd.read_csv(data_dir + '/Test.csv')
+test = pd.read_csv(ddir + '/Test.csv')
 
 labels = test["ClassId"].values
 imgs = test["Path"].values
@@ -164,9 +164,9 @@ data =[]
 
 for img in imgs:
     try:
-        image = cv2.imread(data_dir + '/' +img)
+        image = cv2.imread(ddir + '/' +img)
         image_fromarray = Image.fromarray(image, 'RGB')
-        resize_image = image_fromarray.resize((IMG_HEIGHT, IMG_WIDTH))
+        resize_image = image_fromarray.resize((im_h, im_w))
         data.append(np.array(resize_image))
     except:
         print("Error in " + img)
@@ -174,7 +174,7 @@ for img in imgs:
 X_test = np.array(data)
 X_test = X_test/255
 
-model.save('model_slim.h5')
+model.save('model.h5')
 predictions = model.predict(X_test)
 pred = np.argmax(predictions, axis=1)
 
