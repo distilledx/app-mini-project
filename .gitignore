@@ -1,0 +1,5 @@
+cnn_venv/*
+input/*
+input_ed/*
+__pycache__
+.vscode
